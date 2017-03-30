@@ -109,6 +109,21 @@
                     console.log("error", err.Message);
                 }
             });
+            //generate editor view
+            $.ajax({
+                type: "POST",
+                url: "editor/generate_editor",
+                data: {table_name: nama_tabel, db_name: nama_db, tipe: "field"},
+                dataType: "JSON",
+                success: function (resdata) {//
+                    $('#editor').html(resdata);
+                },
+                error: function (result, status, err) {
+                    console.log("error", result.responseText);
+                    console.log("error", status.responseText);
+                    console.log("error", err.Message);
+                }
+            });
 
             //generate code
             $('#list_panel').show();
@@ -150,18 +165,18 @@
             if (data == 'list_view') {
                 $('#list_panel').show();
                 $('#form_panel').hide();
-                $('#code_panel').hide();
+                $('#editor_panel').hide();
             } else if (data == 'form_view')
             {
                 $('#list_panel').hide();
                 $('#form_panel').show();
-                $('#code_panel').hide();
+                $('#editor_panel').hide();
             }
-            else if  (data == 'code_view')
+            else if  (data == 'editor_view')
             {
                 $('#list_panel').hide();
                 $('#form_panel').hide();
-                $('#code_panel').show();
+                $('#editor_panel').show();
             }
 
         });
@@ -193,7 +208,6 @@
                     <tr>
                         <th>Database</th>
                         <th>Table</th>
-                        <th>Options</th>
                         <th>Action</th>
                     </tr>
                     </thead>
@@ -208,11 +222,6 @@
                             <select class="form-control" id="table_name" name="table_name">
                                 <?php echo $data_table_name; ?>
                             </select>
-                        </td>
-                        <td>
-                            <label class="checkbox-inline"><input type="checkbox" value="">ListView</label>
-                            <label class="checkbox-inline"><input type="checkbox" value="">Add</label>
-                            <label class="checkbox-inline"><input type="checkbox" value="">Edit</label>
                         </td>
                         <td>
                             <button type="submit" class="btn btn-primary" id="btnGenerate">
@@ -232,6 +241,7 @@
         <ul class="nav nav-tabs nav-justified" style="background-color: #ffff99">
             <li id="list_view"><a href="#">List</a></li>
             <li id="form_view"><a href="#">Form</a></li>
+            <li id="editor_view"><a href="#">Editor</a></li>
         </ul>
     </div>
     <div class="row" style="padding-top: 20px">
@@ -241,6 +251,10 @@
         </div>
         <div class="col-md-6" id="form_panel">
                     <div id="form">
+                    </div>
+        </div>
+        <div class="col-md-6" id="editor_panel">
+                    <div id="editor">
                     </div>
         </div>
     </div>

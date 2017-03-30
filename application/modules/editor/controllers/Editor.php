@@ -32,14 +32,14 @@ class Editor extends CI_Controller
         $this->load->view('all.php', $data);
     }
 
-    #ambil nama kolom dari table yang dipilih
+    // ambil nama kolom dari table yang dipilih
     function get_column_name(){
-        #parameter untuk konek database baru
+        // parameter untuk konek database baru
         $database = $this->input->post('db_name');
         $table = $this->input->post('table_name');
         $db_param = $this->switch_db($database);
 
-        #konek ke database dengan parameter yang disediakan
+        // konek ke database dengan parameter yang disediakan
         $db_conn = $this->load->database($db_param, TRUE);
         $db_conn->select('column_name');
         $db_conn->from(' information_schema.columns');
@@ -47,18 +47,18 @@ class Editor extends CI_Controller
         $db_conn->where('TABLE_SCHEMA',$database);
         $data = $db_conn->get()->result_array();
 
-        #return column name
+        // return column name
         return $data;
     }
 
-      #ambil semua data dari table yang dipilih
+      // ambil semua data dari table yang dipilih
       function get_table_content(){
-        #parameter untuk konek database baru
+        // parameter untuk konek database baru
         $database = $this->input->post('db_name');
         $table = $this->input->post('table_name');
         $db_param = $this->switch_db($database);
 
-        #konek ke database dengan parameter yang disediakan
+        // konek ke database dengan parameter yang disediakan
         $db_conn = $this->load->database($db_param, TRUE);
 
         $db_conn->select('*');
@@ -69,7 +69,7 @@ class Editor extends CI_Controller
         return $data;
     }
 
-    #generate data untuk form
+    // generate data untuk form
     function generate_view_add()
     {
         $tipe = $this->input->post('tipe');
@@ -78,7 +78,7 @@ class Editor extends CI_Controller
         $html = '
          	<style>
         	.input-group-addon {
-        	    min-width:150px;// if you want width please write here //
+        	    min-width:150px;
         	    text-align:left;
         	}
           .input-group{
@@ -113,14 +113,15 @@ class Editor extends CI_Controller
         }
     }
 
-    #generate data untuk list_view
+    // generate data untuk list_view
     function generate_view_list()
     {
         $tipe = $this->input->post('tipe');
         $data = $this->get_column_name();
         $action = site_url() . '';
-        $header = '';
+        $header = $tr = '';
 
+        // ambil data untuk header, ganti underscore dengan spasi
         foreach ($data as $key => $value) {
             $label = ucfirst($value['column_name']);
             $label = str_replace("_"," ",$label);
@@ -128,8 +129,8 @@ class Editor extends CI_Controller
         }
 
         $data_table = $this->get_table_content();
-        $tr = '';
 
+        // isi table, untuk datatable
         foreach ($data_table as $key => $value) {
             $td = '';
             foreach ($value as $k => $v) {
@@ -164,10 +165,60 @@ class Editor extends CI_Controller
                 echo json_encode($plain);
                 break;
         }
+    }
+
+    function generate_editor()
+    {
+        $tipe = $this->input->post('tipe');
+        $data = $this->get_column_name();
+        $action = site_url() . '';
+        $html = '
+         	<style>
+        	.input-group-addon {
+        	    min-width:150px;
+        	    text-align:left;
+        	}
+          .input-group{
+            padding: 5px;
+          }
+        	</style>';
+          $tr_pertama = $tr_kedua = '';
+        foreach ($data as $key => $value) {
+            $label = ucfirst($value['column_name']);
+            $label = str_replace("_"," ",$label);
+            $name_id = $value['column_name'];
+            $html .= '';
+            $tr_pertama .= '
+            <tr>
+                <td><div class="radio">
+                      <label><input type="radio" name="optradio"></label>
+                    </div>
+                </td>
+                <td>'.$label.'</td>
+                <td>-</td>
+            </tr>';
+
+        }
+      //  $html .= '<input type="submit" value="Save" class="btn btn-primary" style="float: right">';
+        $html .= '<table class="table table-striped">
+    <thead>
+      <tr>
+        <th style="width:20px">PK</th>
+        <th>Field</th>
+        <th>Option</th>
+      </tr>
+    </thead>
+    <tbody>
+    '.$tr_pertama.'
+
+    </tbody>
+  </table>
+        ';
+        echo json_encode($html);
 
     }
 
-    #generate semua kedalam file
+    // generate semua kedalam file
     function generate_file()
     {
         $table = $this->input->post('table_name');
@@ -176,12 +227,12 @@ class Editor extends CI_Controller
         $isi_table = $variable = $table_header = $content_data = $form_data = $parameter = $url_add = '';
 
         foreach ($data as $key => $value) {
-            #controller & model
+            // controller & model
             $nama = "'".$value['column_name']."'";
             $isi = '$'.$value['column_name'];
             $isi_table .=  "\n\t\t\t\t".$nama." => ".$isi.",";
             $variable .= $isi." = $"."this->input->post(".$nama.");\n\t\t\t";
-            #view
+            // view
             $table_label = ucfirst($value['column_name']);
             $table_label = str_replace("_"," ",$table_label);
             $table_header .= "\n\t\t\t\t\t<th>$table_label</th>";
@@ -191,57 +242,58 @@ class Editor extends CI_Controller
           $model = 'M_'.$table;
           $view = 'v_'.$table;
           $view_add = 'v_add_'.$table;
+          $view_edit = 'v_edit_'.$table;
 
-        #definisi folder target
+        // definisi folder target
           $folder_parent = realpath(APPPATH.'../generated/')."/$table";
           $folder_controller = $folder_parent."/controllers";
           $folder_model = $folder_parent."/models";
           $folder_view = $folder_parent."/views";
 
-        #buat folder
+        // buat folder
           $create_folder = (is_dir($folder_parent)) ? '' : mkdir($folder_parent);
           $create_folder = (is_dir($folder_controller)) ? '' : mkdir($folder_controller);
           $create_folder = (is_dir($folder_model)) ? '' : mkdir($folder_model);
           $create_folder = (is_dir($folder_view)) ? '' : mkdir($folder_view);
 
-        #ganti permission folder
+        // ganti permission folder
           chmod($folder_parent, 0777);
           chmod($folder_controller, 0777);
           chmod($folder_model, 0777);
           chmod($folder_view, 0777);
 
-        #view - list
+        // view - list
           $content_header = "\n\t\t\t\t".'<?php foreach($table_content as $key => $value){ ?>';
           $content_data = "\n\t\t\t\t\t<tr>";
           foreach ($data as $key => $value) {
               $content_data .= "\n\t\t\t\t\t\t".'<td><?php echo $value["'.$value['column_name'].'"] ?></td>';
           }
-          $content_data .= "\n\t\t\t\t\t\t".'<td>edit - hapus</td>';
+          $content_data .= "\n\t\t\t\t\t\t".'<td> <a href="'.$table.'/edit?id=" >Edit </a> - <a href="'.$table.'/delete?id=" >Hapus </a></td>';
           $content_data .= "\n\t\t\t\t\t</tr>";
           $content_footer = "\n\t\t\t\t".'<?php } ?>';
           $content = $content_header.$content_data.$content_footer;
           $template = file_get_contents(realpath(APPPATH.'../generated/').'/template_view.php');
           $template = str_replace("#header#", $table_header, $template);
           $template = str_replace("#isi#", $content, $template);
-          $template = str_replace("#link_add#", 'add', $template);
+          $template = str_replace("#link_add#", $table.'/add', $template);
           $newFile = fopen($folder_view.'/'.$view.'.php', 'w');
           fwrite($newFile, $template);
           fclose($newFile);
 
-          #view - add
+          // view - add
             foreach ($data as $key => $value) {
               $label = ucfirst($value['column_name']);
               $label = str_replace("_"," ",$label);
-              $parameter .= $value['column_name'].":".$value['column_name'].",";
+              //$parameter .= $value['column_name'].":".$value['column_name'].",";
                 $form_data .= "\n\t\t\t\t\t\t\t\t\t\t\t\t".'<div class="input-group">
                           <span class="input-group-addon" id="basic-addon1">' . $label . '</span>
-                          <input type="text" class="form-control" placeholder="" name="' . $value['column_name'] . '" id="' . $value['column_name'] . '" aria-describedby="basic-addon1">
+                          <input type="text" class="form-control" placeholder="" name="' . $value['column_name'] . '" id="' . $value['column_name'] . '"  aria-describedby="basic-addon1">
                         </div>';
             }
             $parameter = rtrim($parameter,',');
             $url_add = $table."/add";
             $template = file_get_contents(realpath(APPPATH.'../generated/').'/template_add.php');
-            $template = str_replace("#parameter_ajax#", $parameter, $template);
+            //$template = str_replace("#parameter_ajax#", $parameter_edit, $template);
             $template = str_replace("#controller#", $table, $template);
             $template = str_replace("#url_add_ajax#", $url_add, $template);
             $template = str_replace("#form_input#", $form_data, $template);
@@ -249,17 +301,41 @@ class Editor extends CI_Controller
             fwrite($newFile, $template);
             fclose($newFile);
 
-        #controller
+
+            // view - edit
+            $form_data =  ' ';
+              foreach ($data as $key => $value) {
+                $label = ucfirst($value['column_name']);
+                $label = str_replace("_"," ",$label);
+                //$parameter .= $value['column_name'].":".$value['column_name'].",";
+                  $form_data .= "\n\t\t\t\t\t\t\t\t\t\t\t\t".'<div class="input-group">
+                            <span class="input-group-addon" id="basic-addon1">' . $label . '</span>
+                            <input type="text" class="form-control" placeholder="" name="' . $value['column_name'] . '" id="' . $value['column_name'] . '" value="<?php echo $table_content[0]["' . $value['column_name'] . '"]; ?> " aria-describedby="basic-addon1">
+                          </div>';
+              }
+              $parameter = rtrim($parameter,',');
+              $url_edit = $table."/update";
+              $template = file_get_contents(realpath(APPPATH.'../generated/').'/template_edit.php');
+              //$template = str_replace("#parameter_ajax#", $parameter, $template);
+              $template = str_replace("#controller#", $table, $template);
+              $template = str_replace("#url_edit_ajax#", $url_edit, $template);
+              $template = str_replace("#form_input#", $form_data, $template);
+              $newFile = fopen($folder_view.'/'.$view_edit.'.php', 'w');
+              fwrite($newFile, $template);
+              fclose($newFile);
+
+        // controller
           $template_controller = file_get_contents(realpath(APPPATH.'../generated/').'/template_controller.php');
           $template_controller = str_replace("#controller#", $controller, $template_controller);
           $template_controller = str_replace("#model#", $model, $template_controller);
           $template_controller = str_replace("#view#", $view, $template_controller);
           $template_controller = str_replace("#view_add#", $view_add, $template_controller);
+          $template_controller = str_replace("#view_edit#", $view_edit, $template_controller);
           $newFile = fopen($folder_controller.'/'.$controller.'.php', 'w');
           fwrite($newFile, $template_controller);
           fclose($newFile);
 
-        #model
+        // model
           $template_controller = file_get_contents(realpath(APPPATH.'../generated/').'/template_model.php');
           $template_controller = str_replace("#model#", $model, $template_controller);
           $template_controller = str_replace("#table_name#", $table, $template_controller);
@@ -267,11 +343,12 @@ class Editor extends CI_Controller
           fwrite($newFile, $template_controller);
           fclose($newFile);
 
-        #modifikasi permission file (*linux)
+        // modifikasi permission file (*linux)
           chmod($folder_model.'/'.$model.'.php', 0777);
           chmod($folder_controller.'/'.$controller.'.php', 0777);
           chmod($folder_view.'/'.$view.'.php', 0777);
           chmod($folder_view.'/'.$view_add.'.php', 0777);
+          chmod($folder_view.'/'.$view_edit.'.php', 0777);
     }
 
 
