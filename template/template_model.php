@@ -30,7 +30,7 @@ class #model# extends CI_Model
 
     public function delete_by_id($id){
         $this->db->where('#primary_key#',$id);
-        $query = $this->db->update('#table_name#',$data);
+        $query = $this->db->delete('#table_name#');
     }
 
 

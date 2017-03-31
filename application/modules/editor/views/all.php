@@ -16,7 +16,6 @@
 
 <script>
     window.onload = isi_database();
-
     function capitalizeFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
@@ -73,12 +72,12 @@
             });
         });
 
-
         $("#btnGenerate").click(function () {
             $("#isinya").empty();
             var nama_db = document.getElementById('db_name').value;
             var nama_tabel = document.getElementById('table_name').value;
 
+/*
             //generate form add
             $.ajax({
                 type: "POST",
@@ -109,6 +108,7 @@
                     console.log("error", err.Message);
                 }
             });
+*/
             //generate editor view
             $.ajax({
                 type: "POST",
@@ -124,12 +124,12 @@
                     console.log("error", err.Message);
                 }
             });
-
             //generate code
-            $('#list_panel').show();
+            $('#editor_panel').show();
+            $('#list_panel').hide();
             $('#form_panel').hide();
             $('#code_panel').hide();
-              $("#list_view").addClass('active');
+            $('#editor_view').addClass('active');
         });
 
         $("#btnGenerateFile").click(function () {
@@ -141,6 +141,23 @@
                 type: "POST",
                 url: "editor/generate_file",
                 data: {table_name: nama_tabel, db_name: nama_db, tipe: "field"},
+                dataType: "JSON",
+                success: function (resdata) {//
+                    $('#form').html(resdata);
+                },
+                error: function (result, status, err) {
+                    console.log("error", result.responseText);
+                    console.log("error", err.Message);
+                }
+            });
+        });
+        $("#btnGenerateEditor").click(function () {
+          var data = $('form').serialize();
+            //generate File
+            $.ajax({
+                type: "POST",
+                url: "editor/generate_from_editor",
+                data: {data: data},
                 dataType: "JSON",
                 success: function (resdata) {//
                     $('#form').html(resdata);
@@ -180,8 +197,6 @@
             }
 
         });
-
-
     });
 </script>
 <link href="<?php echo base_url() ?>css/bootstrap.min.css" rel="stylesheet">
@@ -230,6 +245,9 @@
                             <button type="submit" class="btn btn-primary" id="btnGenerateFile">
                                 Generate File
                             </button>
+                            <button type="submit" class="btn btn-primary" id="btnGenerateEditor">
+                                Generate From editor
+                            </button>
                         </td>
                     </tr>
                     </tbody>
@@ -239,12 +257,16 @@
     </div>
     <div class="row">
         <ul class="nav nav-tabs nav-justified" style="background-color: #ffff99">
+          <li id="editor_view"><a href="#">Editor</a></li>
             <li id="list_view"><a href="#">List</a></li>
             <li id="form_view"><a href="#">Form</a></li>
-            <li id="editor_view"><a href="#">Editor</a></li>
         </ul>
     </div>
     <div class="row" style="padding-top: 20px">
+      <div class="col-md-6" id="editor_panel">
+                  <div id="editor">
+                  </div>
+      </div>
         <div class="col-md-12" id="list_panel">
                     <div id="list">
                     </div>
@@ -253,10 +275,7 @@
                     <div id="form">
                     </div>
         </div>
-        <div class="col-md-6" id="editor_panel">
-                    <div id="editor">
-                    </div>
-        </div>
+
     </div>
 
 </div>

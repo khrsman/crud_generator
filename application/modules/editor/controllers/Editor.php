@@ -10,6 +10,10 @@ class Editor extends CI_Controller
     {
         parent::__construct();
         //$this->load->model('m_chat');
+        $this->table_name ='';
+        $this->table_data ='';
+        $this->field_options ='';
+        $this->field_type ='';
 
     }
 
@@ -169,7 +173,8 @@ class Editor extends CI_Controller
 
     function generate_editor()
     {
-        $tipe = $this->input->post('tipe');
+        $table = $this->input->post('table_name');
+        //$tipe = $this->input->post('tipe');
         $data = $this->get_column_name();
         $action = site_url() . '';
         $html = '
@@ -191,28 +196,49 @@ class Editor extends CI_Controller
             $tr_pertama .= '
             <tr>
                 <td><div class="radio">
-                      <label><input type="radio" name="optradio"></label>
+                      <label><input type="radio" name="pk" value="['.$name_id.']"></label>
                     </div>
                 </td>
                 <td>'.$label.'</td>
-                <td>-</td>
+                <td>
+                <select name="type['.$name_id.']">
+                  <option selected> - </option>
+                   <option value="text">Text</option>
+                   <option value="select">Select</option>
+                   <option value="radio">Radio</option>
+                 </select>
+                </td>
+                <td>
+                <select name="options['.$name_id.']">
+                <option selected> - </option>
+                   <option value="required">Required</option>
+                   <option value="number">Number</option>
+                   <option value="hidden">hidden</option>
+                   <option value="password">Password</option>
+                 </select>
+                </td>
+                <td><input type="checkbox" name="generate['.$name_id.']" value="'.$name_id.'" checked></td>
             </tr>';
-
         }
       //  $html .= '<input type="submit" value="Save" class="btn btn-primary" style="float: right">';
-        $html .= '<table class="table table-striped">
+        $html .= '
+        <form>
+        <input type="hidden" name="table" value="'.$table.'">
+        <table class="table table-striped">
     <thead>
       <tr>
         <th style="width:20px">PK</th>
         <th>Field</th>
+        <th>Tipe</th>
         <th>Option</th>
+        <th>Generate</th>
       </tr>
     </thead>
     <tbody>
     '.$tr_pertama.'
-
     </tbody>
   </table>
+    </form>
         ';
         echo json_encode($html);
 
@@ -224,7 +250,7 @@ class Editor extends CI_Controller
         $table = $this->input->post('table_name');
         $data = $this->get_column_name();
         $data_table = $this->get_table_content();
-        $isi_table = $variable = $table_header = $content_data = $form_data = $parameter = $url_add = '';
+        $isi_table = $variable = $table_header = $content_data = $parameter = $url_add = '';
 
         foreach ($data as $key => $value) {
             // controller & model
@@ -351,6 +377,69 @@ class Editor extends CI_Controller
           chmod($folder_view.'/'.$view_edit.'.php', 0777);
     }
 
+    function generate_from_editor()
+    {
+        $post = array();
+        parse_str($this->input->post('data'), $post);
+
+        // inisialisasi global variable
+        $this->table_name =  $post['table'];
+        $this->table_data =  $post['generate'];
+        $this->field_options =  $post['options'];
+        $this->field_type =  $post['type'];
+
+        $variable =  $content_data = $form_data = $parameter = $url_add = '';
+
+        foreach ($this->table_data as $key => $value) {
+            // inisialisasi variable untuk controller & model
+            $var = "'".$key."'";
+            $content = '$'.$key;
+            $variable .= $content." = $"."this->input->post(".$var.");\n\t\t\t";
+        }
+
+          // Inisialisasi nama file
+          $controller = ucfirst($this->table_name);
+          $model = 'M_'.$this->table_name;
+          $view = 'v_'.$this->table_name;
+          $view_add = 'v_add_'.$this->table_name;
+          $view_edit = 'v_edit_'.$this->table_name;
+
+        // definisi folder target
+          $folder_parent = realpath(APPPATH.'../generated/')."/$this->table_name";
+          $folder_controller = $folder_parent."/controllers";
+          $folder_model = $folder_parent."/models";
+          $folder_view = $folder_parent."/views";
+
+          $generated_file_view = $folder_view.'/'.$view.'.php';
+          $generated_file_add = $folder_view.'/'.$view_add.'.php';
+          $generated_file_edit = $folder_view.'/'.$view_edit.'.php';
+          $generated_file_controller = $folder_controller.'/'.$controller.'.php';
+          $generated_file_model = $folder_model.'/'.$model.'.php';
+
+        // buat folder dan ganti permissionnya
+          $create_folder = (is_dir($folder_parent)) ? '' : mkdir($folder_parent);
+          $create_folder = (is_dir($folder_controller)) ? '' : mkdir($folder_controller);
+          $create_folder = (is_dir($folder_model)) ? '' : mkdir($folder_model);
+          $create_folder = (is_dir($folder_view)) ? '' : mkdir($folder_view);
+          chmod($folder_parent, 0777);
+          chmod($folder_controller, 0777);
+          chmod($folder_model, 0777);
+          chmod($folder_view, 0777);
+
+
+        // generate list view
+        $this->create_view_list($generated_file_view);
+        // generate add view
+        $this->create_view_add($generated_file_add);
+        // generate edit view
+        $this->create_view_edit($generated_file_edit);
+        // generate controller
+        $this->create_controller($generated_file_controller,$controller,$model,$view,$view_add,$view_edit);
+        // generate model
+        $this->create_model($generated_file_model,$model);
+
+    }
+
 
     # -------------------------------- Untuk AJAX ----------------------------------------------------
     function select_database()
@@ -375,6 +464,113 @@ class Editor extends CI_Controller
 
         #return data dalam bentuk json object
         echo json_encode($data);
+    }
+
+    function create_view_list($generated_file_view){
+
+      $table_name = $this->table_name;
+      $table_data = $this->table_data;
+
+      $generated_content = "";
+      $generated_header = "";
+      foreach ($table_data as $key => $value) {
+        $generated_label = str_replace("_"," ",ucfirst($key));
+        $generated_header .= "\n\t\t\t\t\t<th>$generated_label</th>";
+        $generated_content .= "\n\t\t\t\t\t\t".'<td><?php echo $value["'.$key.'"] ?></td>';
+      }
+
+      // tambahkan action
+      $generated_header .= "\n\t\t\t\t\t<th>Action</th>";
+      $generated_content .= "\n\t\t\t\t\t\t".'<td> <a href="'.$table_name.'/edit?id=" >Edit </a> - <a href="'.$table_name.'/delete?id=" >Hapus </a></td>';
+
+      // masukan kedalam template
+      $template = file_get_contents(realpath(APPPATH.'../template/').'/template_view.php');
+      $template = str_replace("#header#", $generated_header, $template);
+      $template = str_replace("#content#", $generated_content, $template);
+      $template = str_replace("#link_add#", $table_name.'/add', $template);
+
+      // create file
+      $newFile = fopen($generated_file_view, 'w');
+      fwrite($newFile, $template);
+      fclose($newFile);
+      chmod($generated_file_view, 0777);
+    }
+
+    function create_view_add($generated_file_add){
+      $form_data = '';
+      foreach ($this->table_data as $key => $value) {
+        $label = str_replace("_"," ",ucfirst($key));
+        //$parameter .= $value['column_name'].":".$value['column_name'].",";
+          $form_data .= "\n\t\t\t\t\t\t\t\t\t\t\t\t".
+                  '<div class="input-group">
+                    <span class="input-group-addon">' . $label . '</span>
+                    <input type="text" class="form-control" placeholder="" name="' . $key . '" id="' . $key . '" >
+                  </div>';
+
+          // switch ($this->field_type['$key']) {
+          //   case 'value':
+          //     # code...
+          //     break;
+          //
+          //   default:
+          //     # code...
+          //     break;
+          // }
+      }
+      $url_add = $this->table_name."/add";
+      $template = file_get_contents(realpath(APPPATH.'../template/').'/template_add.php');
+      $template = str_replace("#controller#", $this->table_name, $template);
+      $template = str_replace("#url_add_ajax#", $url_add, $template);
+      $template = str_replace("#form_input#", $form_data, $template);
+      $newFile = fopen($generated_file_add, 'w');
+      fwrite($newFile, $template);
+      fclose($newFile);
+      chmod($generated_file_add, 0777);
+    }
+
+    function create_view_edit($generated_file_edit){
+      $form_data =  '';
+        foreach ($this->table_data as $key => $value) {
+          $label = ucfirst($key);
+          $label = str_replace("_"," ",$label);
+          //$parameter .= $value['column_name'].":".$value['column_name'].",";
+            $form_data .= "\n\t\t\t\t\t\t\t\t\t\t\t\t".'<div class="input-group">
+                      <span class="input-group-addon">' . $label . '</span>
+                      <input type="text" class="form-control" placeholder="" name="' . $key . '" id="' . $key . '" value="<?php echo $table_content[0]["' . $key . '"]; ?> " >
+                    </div>';
+        }
+        $url_edit = $this->table_name."/update";
+        $template = file_get_contents(realpath(APPPATH.'../template/').'/template_edit.php');
+        $template = str_replace("#controller#", $this->table_name, $template);
+        $template = str_replace("#url_edit_ajax#", $url_edit, $template);
+        $template = str_replace("#form_input#", $form_data, $template);
+        $newFile = fopen($generated_file_edit, 'w');
+        fwrite($newFile, $template);
+        fclose($newFile);
+        chmod($generated_file_edit, 0777);
+    }
+
+    function create_controller($generated_file_controller,$controller,$model,$view,$view_add,$view_edit){
+      $template_controller = file_get_contents(realpath(APPPATH.'../template/').'/template_controller.php');
+      $template_controller = str_replace("#controller#", $controller, $template_controller);
+      $template_controller = str_replace("#model#", $model, $template_controller);
+      $template_controller = str_replace("#view#", $view, $template_controller);
+      $template_controller = str_replace("#view_add#", $view_add, $template_controller);
+      $template_controller = str_replace("#view_edit#", $view_edit, $template_controller);
+      $newFile = fopen($generated_file_controller, 'w');
+      fwrite($newFile, $template_controller);
+      fclose($newFile);
+      chmod($generated_file_controller, 0777);
+    }
+
+    function create_model($generated_file_model,$model){
+      $template_controller = file_get_contents(realpath(APPPATH.'../template/').'/template_model.php');
+      $template_controller = str_replace("#model#", $model, $template_controller);
+      $template_controller = str_replace("#table_name#", $this->table_name, $template_controller);
+      $newFile = fopen($generated_file_model, 'w');
+      fwrite($newFile, $template_controller);
+      fclose($newFile);
+      chmod($generated_file_model, 0777);
     }
 
 
