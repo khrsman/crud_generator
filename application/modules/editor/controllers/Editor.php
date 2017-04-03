@@ -13,7 +13,10 @@ class Editor extends CI_Controller
         $this->table_name ='';
         $this->table_data ='';
         $this->field_options ='';
-        $this->field_type ='';
+        $this->field_type = '';
+        $this->field_type_variable = '';
+        $this->field_primary_key = '';
+
 
     }
 
@@ -35,6 +38,12 @@ class Editor extends CI_Controller
         $data['table'] = '';
         $this->load->view('all.php', $data);
     }
+
+
+        function theme()
+        {
+            $this->load->view('form.php');
+        }
 
     // ambil nama kolom dari table yang dipilih
     function get_column_name(){
@@ -195,21 +204,42 @@ class Editor extends CI_Controller
             $html .= '';
             $tr_pertama .= '
             <tr>
-                <td><div class="radio">
-                      <label><input type="radio" name="pk" value="['.$name_id.']"></label>
+                <td align="center" style="vertical-align:middle">
+                <div class="radio">
+                    <input type="radio" name="radio" id="radio'.$name_id.'" value="'.$name_id.'">
+                    <label for="radio'.$name_id.'">
+                    </label>
+                </div>
+                </td>
+                <td style="vertical-align:middle">'.$label.'</td>
+                <td>
+                    <select data-id = "'.$name_id.'" onchange="getval(this);" class="form-control" name="type['.$name_id.']">
+                       <option value="text" selected>Text</option>
+                       <option value="select">Select</option>
+                       <option value="radio">Radio</option>
+                     </select>
+                     <div class="row" id="options_'.$name_id.'" style="display:none">
+
+                    <div class="col-md-12">
+                    <div class="input-group">
+                        <input name="type_variable['.$name_id.'][0][value]" placeholder="value" class="form-control" style="float: left; width: 50%;" title="Prefix" type="text">
+                        <input name="type_variable['.$name_id.'][0][name]" placeholder="name" class="form-control" style="float: left; width: 50%;" type="text">
+                        <span class="input-group-btn">
+                            <button style="padding:9px" class="btn btn-default" type="button" onclick="removeOptionsRow(this);">
+                                <span class="glyphicon glyphicon-minus"></span>
+                            </button>
+                        </span>
                     </div>
-                </td>
-                <td>'.$label.'</td>
-                <td>
-                <select name="type['.$name_id.']">
-                  <option selected> - </option>
-                   <option value="text">Text</option>
-                   <option value="select">Select</option>
-                   <option value="radio">Radio</option>
-                 </select>
+                    <button style="margin:0 0 0 6px" type="button" id="'.$name_id.'" class="btn btn-warning btn-sm" onclick="addOptionsRow(this);">
+                        <span class="glyphicon glyphicon-plus"></span>
+                        Click to add more
+                    </button>
+                    </div>
+                  </div>
+                  </div>
                 </td>
                 <td>
-                <select name="options['.$name_id.']">
+                <select class="form-control" name="options['.$name_id.']">
                 <option selected> - </option>
                    <option value="required">Required</option>
                    <option value="number">Number</option>
@@ -217,21 +247,21 @@ class Editor extends CI_Controller
                    <option value="password">Password</option>
                  </select>
                 </td>
-                <td><input type="checkbox" name="generate['.$name_id.']" value="'.$name_id.'" checked></td>
+                <td align="center"><input type="checkbox" name="generate['.$name_id.']" value="'.$name_id.'" checked></td>
             </tr>';
         }
       //  $html .= '<input type="submit" value="Save" class="btn btn-primary" style="float: right">';
         $html .= '
         <form>
         <input type="hidden" name="table" value="'.$table.'">
-        <table class="table table-striped">
+        <table class="table">
     <thead>
       <tr>
-        <th style="width:20px">PK</th>
-        <th>Field</th>
-        <th>Tipe</th>
-        <th>Option</th>
-        <th>Generate</th>
+        <th style="width:10%">PK</th>
+        <th style="width:20%">Field</th>
+        <th style="width:30%">Type</th>
+        <th style="width:30%">Option</th>
+        <th style="width:10%">Generate</th>
       </tr>
     </thead>
     <tbody>
@@ -382,11 +412,14 @@ class Editor extends CI_Controller
         $post = array();
         parse_str($this->input->post('data'), $post);
 
+
         // inisialisasi global variable
         $this->table_name =  $post['table'];
         $this->table_data =  $post['generate'];
+        $this->field_primary_key =  $post['radio'];
         $this->field_options =  $post['options'];
         $this->field_type =  $post['type'];
+        $this->field_type_variable = $post['type_variable'];
 
         $variable =  $content_data = $form_data = $parameter = $url_add = '';
 
@@ -425,6 +458,8 @@ class Editor extends CI_Controller
           chmod($folder_controller, 0777);
           chmod($folder_model, 0777);
           chmod($folder_view, 0777);
+
+
 
 
         // generate list view
@@ -470,6 +505,7 @@ class Editor extends CI_Controller
 
       $table_name = $this->table_name;
       $table_data = $this->table_data;
+      $primary_key = $this->field_primary_key;
 
       $generated_content = "";
       $generated_header = "";
@@ -481,7 +517,7 @@ class Editor extends CI_Controller
 
       // tambahkan action
       $generated_header .= "\n\t\t\t\t\t<th>Action</th>";
-      $generated_content .= "\n\t\t\t\t\t\t".'<td> <a href="'.$table_name.'/edit?id=" >Edit </a> - <a href="'.$table_name.'/delete?id=" >Hapus </a></td>';
+      $generated_content .= "\n\t\t\t\t\t\t".'<td> <a href="'.$table_name.'/edit?id=<?php echo $value["'.$primary_key.'"] ?>" >Edit </a> - <a href="'.$table_name.'/delete?id=<?php echo $value["'.$primary_key.'"] ?>" >Hapus </a></td>';
 
       // masukan kedalam template
       $template = file_get_contents(realpath(APPPATH.'../template/').'/template_view.php');
@@ -501,22 +537,50 @@ class Editor extends CI_Controller
       foreach ($this->table_data as $key => $value) {
         $label = str_replace("_"," ",ucfirst($key));
         //$parameter .= $value['column_name'].":".$value['column_name'].",";
-          $form_data .= "\n\t\t\t\t\t\t\t\t\t\t\t\t".
-                  '<div class="input-group">
-                    <span class="input-group-addon">' . $label . '</span>
-                    <input type="text" class="form-control" placeholder="" name="' . $key . '" id="' . $key . '" >
-                  </div>';
 
-          // switch ($this->field_type['$key']) {
-          //   case 'value':
-          //     # code...
-          //     break;
-          //
-          //   default:
-          //     # code...
-          //     break;
-          // }
+          switch ($this->field_type[$key]) {
+            case 'text':
+            $form_data .= "\n\t\t\t\t\t\t\t\t\t\t\t\t".
+                    '<div class="input-group">
+                      <span class="input-group-addon">' . $label . '</span>
+                      <input type="text" class="form-control" placeholder="" name="' . $key . '" id="' . $key . '" >
+                    </div>';
+              break;
+              case 'select':
+
+              $options = '<option selected> - </option>';
+              foreach ($this->field_type_variable[$key] as $keyy => $valuee) {
+                $options .='<option value="'.$valuee['value'].'">'.$valuee['name'].'</option>';
+              }
+              $form_data .= "\n\t\t\t\t\t\t\t\t\t\t\t\t".
+                      '<div class="input-group">
+                      <span class="input-group-addon">' . $label . '</span>
+                      <select class="form-control" name="type['.$key.']">
+                      '.$options.'
+                       </select>
+                      </div>';
+              break;
+              case 'radio':
+              $form_data .= "\n\t\t\t\t\t\t\t\t\t\t\t\t".
+                      '<div class="input-group">
+                      <span class="input-group-addon">' . $label . '</span>
+                      <div class="radio">
+                        <label><input type="radio" name="['.$key.']" value="">Option 1</label>
+                      </div>
+                      <div class="radio">
+                        <label><input type="radio" name="['.$key.']" value="">Option 2</label>
+                      </div>
+                      <div class="radio">
+                        <label><input type="radio" name="['.$key.']" value="">Option 3</label>
+                      </div>
+                      </div>';
+              break;
+              default:
+              # code...
+              break;
+          }
       }
+
       $url_add = $this->table_name."/add";
       $template = file_get_contents(realpath(APPPATH.'../template/').'/template_add.php');
       $template = str_replace("#controller#", $this->table_name, $template);
@@ -567,6 +631,7 @@ class Editor extends CI_Controller
       $template_controller = file_get_contents(realpath(APPPATH.'../template/').'/template_model.php');
       $template_controller = str_replace("#model#", $model, $template_controller);
       $template_controller = str_replace("#table_name#", $this->table_name, $template_controller);
+      $template_controller = str_replace("#primary_key#", $this->field_primary_key, $template_controller);
       $newFile = fopen($generated_file_model, 'w');
       fwrite($newFile, $template_controller);
       fclose($newFile);

@@ -36,7 +36,7 @@ class #controller# extends CI_Controller {
 
     // halaman edit
     function edit(){
-      $id = $this->input->post('id');
+      $id = $this->input->get('id');
       $data['table_content'] = $this->#model#->get($id);
       $this->load->view('#view_edit#', $data);
     }

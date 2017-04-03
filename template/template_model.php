@@ -12,6 +12,7 @@ class #model# extends CI_Model
 
     public function get($id = NULL){
       if($id){
+        $this->db->where('#primary_key#', $id);
         $this->db->limit(1);
       }
         $query = $this->db->get('#table_name#');
