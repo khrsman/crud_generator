@@ -16,8 +16,6 @@ class Editor extends CI_Controller
         $this->field_type = '';
         $this->field_type_variable = '';
         $this->field_primary_key = '';
-
-
     }
 
     function switch_db($name_db)
@@ -36,7 +34,8 @@ class Editor extends CI_Controller
     function index()
     {
         $data['table'] = '';
-        $this->load->view('all.php', $data);
+        //$this->load->view('all.php', $data);
+        $this->load->view('form.php');
     }
 
 
